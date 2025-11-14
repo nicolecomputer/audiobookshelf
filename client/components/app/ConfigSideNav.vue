@@ -111,6 +111,11 @@ export default {
           path: '/config/rss-feeds'
         },
         {
+          id: 'config-gpodder',
+          title: this.$strings.HeaderGpodder,
+          path: '/config/gpodder'
+        },
+        {
           id: 'config-authentication',
           title: this.$strings.HeaderAuthentication,
           path: '/config/authentication'
