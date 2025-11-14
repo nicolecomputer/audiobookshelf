@@ -818,6 +818,8 @@
   "MessageFetching": "Fetching...",
   "MessageForceReScanDescription": "will scan all files again like a fresh scan. Audio file ID3 tags, OPF files, and text files will be scanned as new.",
   "GpodderDescription": "The gpodder API is used for syncing with third party podcast clients",
+  "LabelSettingsEnableGpodderAPI": "Enable Gpodder API",
+  "LabelSettingsEnableGpodderAPIHelp": "When enabled, the Gpodder API will be available for syncing podcast progress with third party clients",
   "MessageHeatmapListeningTimeTooltip": "<strong>{0} listening</strong> on {1}",
   "MessageHeatmapNoListeningSessions": "No listening sessions on {0}",
   "MessageImportantNotice": "Important Notice!",
