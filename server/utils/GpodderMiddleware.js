@@ -4,11 +4,11 @@ const Database = require('../Database')
 const LocalAuthStrategy = require('../auth/LocalAuthStrategy')
 
 /**
- * Gpodder API authentication helper
- * Handles HTTP Basic Auth and session cookie authentication for Gpodder API endpoints
+ * Gpodder API middleware helpers
+ * Handles authentication, authorization, and API validation for Gpodder API endpoints
  *
  */
-class GpodderAuth {
+class GpodderMiddleware {
   constructor() {
     this.localAuthStrategy = new LocalAuthStrategy()
   }
@@ -37,7 +37,7 @@ class GpodderAuth {
 
       return { username, password }
     } catch (error) {
-      Logger.error('[GpodderAuth] Error parsing basic auth:', error)
+      Logger.error('[GpodderMiddleware] Error parsing basic auth:', error)
       return null
     }
   }
@@ -56,44 +56,44 @@ class GpodderAuth {
 
     // Try session-based auth first (from cookies)
     if (req.session && req.session.userId) {
-      Logger.info('[GpodderAuth] Authenticating via session cookie')
+      Logger.info('[GpodderMiddleware] Authenticating via session cookie')
       const user = await Database.userModel.getUserById(req.session.userId)
       if (user && user.username.toLowerCase() === usernameFromUrl.toLowerCase()) {
-        Logger.info(`[GpodderAuth] Session auth successful for user: ${user.username}`)
+        Logger.info(`[GpodderMiddleware] Session auth successful for user: ${user.username}`)
         req.user = user
         return next()
       }
-      Logger.warn('[GpodderAuth] Session exists but user mismatch or not found')
+      Logger.warn('[GpodderMiddleware] Session exists but user mismatch or not found')
     }
 
     // Fall back to Basic Auth
     const credentials = this.parseBasicAuth(req)
     if (!credentials) {
-      Logger.error('[GpodderAuth] No valid session or Basic Auth credentials')
+      Logger.error('[GpodderMiddleware] No valid session or Basic Auth credentials')
       return res.sendStatus(401)
     }
 
     // Check if the username in the URL matches the one in the Authorization header
     if (credentials.username.toLowerCase() !== usernameFromUrl.toLowerCase()) {
-      Logger.error(`[GpodderAuth] Username mismatch: URL has "${usernameFromUrl}", Auth header has "${credentials.username}"`)
+      Logger.error(`[GpodderMiddleware] Username mismatch: URL has "${usernameFromUrl}", Auth header has "${credentials.username}"`)
       return res.sendStatus(401)
     }
 
     // Find the user in the database
     const user = await Database.userModel.getUserByUsername(credentials.username.toLowerCase())
     if (!user) {
-      Logger.error(`[GpodderAuth] User not found: ${credentials.username}`)
+      Logger.error(`[GpodderMiddleware] User not found: ${credentials.username}`)
       return res.sendStatus(401)
     }
 
     // Verify the password using LocalAuthStrategy
     const isValid = await this.localAuthStrategy.comparePassword(credentials.password, user)
     if (!isValid) {
-      Logger.error(`[GpodderAuth] Invalid password for user: ${credentials.username}`)
+      Logger.error(`[GpodderMiddleware] Invalid password for user: ${credentials.username}`)
       return res.sendStatus(401)
     }
 
-    Logger.info(`[GpodderAuth] Basic auth successful for user: ${user.username}`)
+    Logger.info(`[GpodderMiddleware] Basic auth successful for user: ${user.username}`)
     req.user = user
     next()
   }
@@ -110,18 +110,18 @@ class GpodderAuth {
     // Find the user in the database
     const user = await Database.userModel.getUserByUsername(username.toLowerCase())
     if (!user) {
-      Logger.error(`[GpodderAuth] User not found: ${username}`)
+      Logger.error(`[GpodderMiddleware] User not found: ${username}`)
       return null
     }
 
     // Verify the password using LocalAuthStrategy
     const isValid = await this.localAuthStrategy.comparePassword(password, user)
     if (!isValid) {
-      Logger.error(`[GpodderAuth] Invalid password for user: ${username}`)
+      Logger.error(`[GpodderMiddleware] Invalid password for user: ${username}`)
       return null
     }
 
-    Logger.info(`[GpodderAuth] Basic auth verification successful for user: ${user.username}`)
+    Logger.info(`[GpodderMiddleware] Basic auth verification successful for user: ${user.username}`)
     return user
   }
 
@@ -134,12 +134,12 @@ class GpodderAuth {
    */
   checkApiEnabled(req, res, next) {
     if (!Database.serverSettings.enableGpodderAPI) {
-      Logger.error('[GpodderAuth] Gpodder API is disabled')
+      Logger.error('[GpodderMiddleware] Gpodder API is disabled')
       return res.sendStatus(404)
     }
 
     if (!Database.serverSettings.gpodderLibraryId) {
-      Logger.error('[GpodderAuth] Gpodder library is not selected')
+      Logger.error('[GpodderMiddleware] Gpodder library is not selected')
       return res.sendStatus(500)
     }
 
@@ -147,4 +147,4 @@ class GpodderAuth {
   }
 }
 
-module.exports = GpodderAuth
+module.exports = GpodderMiddleware

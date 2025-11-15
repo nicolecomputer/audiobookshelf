@@ -1,7 +1,7 @@
 const { Request, Response } = require('express')
 const Logger = require('../Logger')
 const Database = require('../Database')
-const GpodderAuth = require('../utils/GpodderAuth')
+const GpodderMiddleware = require('../utils/GpodderMiddleware')
 
 /**
  * @typedef RequestUserObject
@@ -13,7 +13,7 @@ const GpodderAuth = require('../utils/GpodderAuth')
 class GpodderController {
   constructor(Server) {
     this.Server = Server
-    this.gpodderAuth = new GpodderAuth()
+    this.gpodderMiddleware = new GpodderMiddleware()
   }
 
   /**
@@ -40,18 +40,6 @@ class GpodderController {
   }
 
   /**
-   * Middleware to authenticate requests using Gpodder auth
-   * Binds properly to the gpodderAuth instance
-   *
-   * @param {Request} req
-   * @param {Response} res
-   * @param {Function} next
-   */
-  authenticate(req, res, next) {
-    return this.gpodderAuth.authenticate(req, res, next)
-  }
-
-  /**
    * POST: /api/2/auth/:username/login.json
    * Log in the given user via HTTP Basic Auth
    *
@@ -65,17 +53,11 @@ class GpodderController {
    */
   async login(req, res) {
     Logger.info(`[GpodderController] Login attempt for user: ${req.params.username}`)
-    Logger.info(`[GpodderController] Gpodder API enabled: ${Database.serverSettings.enableGpodderAPI}`)
-
-    if (!Database.serverSettings.enableGpodderAPI) {
-      Logger.error('[GpodderController] Gpodder API is disabled')
-      return res.sendStatus(404)
-    }
 
     const { username } = req.params
 
     // Parse HTTP Basic Auth credentials
-    const credentials = this.gpodderAuth.parseBasicAuth(req)
+    const credentials = this.gpodderMiddleware.parseBasicAuth(req)
     if (!credentials) {
       Logger.error('[GpodderController] Invalid or missing Authorization header')
       return res.sendStatus(401)
@@ -88,7 +70,7 @@ class GpodderController {
     }
 
     // Verify credentials and get user
-    const user = await this.gpodderAuth.verifyBasicAuth(credentials.username, credentials.password)
+    const user = await this.gpodderMiddleware.verifyBasicAuth(credentials.username, credentials.password)
     if (!user) {
       return res.sendStatus(401)
     }
@@ -120,11 +102,6 @@ class GpodderController {
    * @param {Response} res
    */
   async getDevices(req, res) {
-    if (!Database.serverSettings.enableGpodderAPI) {
-      Logger.error('[GpodderController] Gpodder API is disabled')
-      return res.sendStatus(404)
-    }
-
     // User is already authenticated by middleware and available at req.user
     try {
       const gpodderDevices = await Database.gpodderDeviceModel.getDevicesForUser(req.user.id)
@@ -147,11 +124,6 @@ class GpodderController {
    * @param {Response} res
    */
   async updateDevice(req, res) {
-    if (!Database.serverSettings.enableGpodderAPI) {
-      Logger.error('[GpodderController] Gpodder API is disabled')
-      return res.sendStatus(404)
-    }
-
     const { deviceid } = req.params
     const { caption, type } = req.body || {}
 
