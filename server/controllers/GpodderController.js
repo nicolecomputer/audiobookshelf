@@ -165,6 +165,12 @@ class GpodderController {
         where: {
           libraryId: Database.serverSettings.gpodderLibraryId,
           mediaType: 'podcast'
+        },
+        include: {
+          model: Database.podcastModel,
+          include: {
+            model: Database.podcastEpisodeModel
+          }
         }
       })
 
@@ -173,8 +179,50 @@ class GpodderController {
       const host = req.get('host')
       const serverUrl = `${protocol}://${host}`
 
-      // Map library items to their local URLs
-      const podcastUrls = libraryItems.map((item) => `${serverUrl}/item/${item.id}`)
+      // Get the RssFeedManager
+      const RssFeedManager = require('../managers/RssFeedManager')
+
+      // For each podcast, ensure an RSS feed is opened
+      const podcastUrls = []
+      for (const item of libraryItems) {
+        // Check if feed already exists for this item
+        let feed = await RssFeedManager.findFeedForEntityId(item.id)
+
+        if (!feed) {
+          // Need to open a feed for this item
+          const slug = `gpodder-${item.id}`
+
+          // Check if slug already exists (shouldn't happen with our naming)
+          const slugExists = await RssFeedManager.checkExistsBySlug(slug)
+          if (slugExists) {
+            Logger.error(`[GpodderController] Slug "${slug}" already exists, skipping item ${item.id}`)
+            continue
+          }
+
+          // Open the feed
+          const feedOptions = {
+            serverAddress: serverUrl,
+            slug: slug,
+            metadataDetails: {
+              preventIndexing: false,
+              ownerName: null,
+              ownerEmail: null
+            }
+          }
+
+          Logger.info(`[GpodderController] Opening RSS feed for podcast "${item.media.title}" with slug "${slug}"`)
+          feed = await RssFeedManager.openFeedForItem(req.user.id, item, feedOptions)
+
+          if (!feed) {
+            Logger.error(`[GpodderController] Failed to open RSS feed for item ${item.id}`)
+            continue
+          }
+        }
+
+        // Add the feed URL to the list
+        const feedUrl = `${serverUrl}${feed.feedURL}`
+        podcastUrls.push(feedUrl)
+      }
 
       // Get the current timestamp in seconds
       const timestamp = Math.floor(Date.now() / 1000)
@@ -188,7 +236,7 @@ class GpodderController {
         timestamp: timestamp
       }
 
-      Logger.info(`[GpodderController] Returning ${podcastUrls.length} podcasts for device ${deviceid}`)
+      Logger.info(`[GpodderController] Returning ${podcastUrls.length} RSS feed URLs for device ${deviceid}`)
       res.json(response)
     } catch (error) {
       Logger.error('[GpodderController] Error getting subscriptions:', error)
