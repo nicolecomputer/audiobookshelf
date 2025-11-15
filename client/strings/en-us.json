@@ -311,6 +311,7 @@
   "LabelDescription": "Description",
   "LabelDeselectAll": "Deselect All",
   "LabelDetectedPattern": "Detected pattern:",
+  "LabelCaption": "Caption",
   "LabelDevice": "Device",
   "LabelDeviceInfo": "Device Info",
   "LabelDeviceIsAvailableTo": "Device is available to...",

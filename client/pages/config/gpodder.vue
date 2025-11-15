@@ -1,6 +1,12 @@
 <template>
   <div>
     <app-settings-content :header-text="$strings.HeaderGpodder" :description="$strings.GpodderDescription">
+      <template #header-items>
+        <div v-if="numDevices" class="mx-2 px-1.5 rounded-lg bg-primary/50 text-gray-300/90 text-sm inline-flex items-center justify-center">
+          <span>{{ numDevices }}</span>
+        </div>
+      </template>
+
       <div class="pt-4">
         <div role="article" :aria-label="$strings.LabelSettingsEnableGpodderAPIHelp" class="flex items-center py-2">
           <ui-toggle-switch :label="$strings.LabelSettingsEnableGpodderAPI" v-model="enableGpodderAPI" :disabled="updatingServerSettings" @input="updateGpodderEnabled" />
@@ -12,6 +18,8 @@
           </ui-tooltip>
         </div>
       </div>
+
+      <tables-gpodder-devices-table class="pt-8" @numDevices="(count) => (numDevices = count)" />
     </app-settings-content>
   </div>
 </template>
@@ -26,7 +34,8 @@ export default {
   data() {
     return {
       updatingServerSettings: false,
-      enableGpodderAPI: false
+      enableGpodderAPI: false,
+      numDevices: 0
     }
   },
   watch: {

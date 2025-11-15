@@ -354,6 +354,7 @@ class ApiRouter {
     this.router.patch('/auth-settings', MiscController.updateAuthSettings.bind(this))
     this.router.post('/watcher/update', MiscController.updateWatchedPath.bind(this))
     this.router.get('/logger-data', MiscController.getLoggerData.bind(this))
+    this.router.get('/gpodder-devices', MiscController.getGpodderDevices.bind(this))
   }
 
   //

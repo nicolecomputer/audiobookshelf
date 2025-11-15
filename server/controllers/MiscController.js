@@ -771,5 +771,48 @@ class MiscController {
       currentDailyLogs: Logger.logManager.getMostRecentCurrentDailyLogs()
     })
   }
+
+  /**
+   * GET: /api/gpodder-devices
+   * Get all Gpodder devices for admin
+   *
+   * @param {RequestWithUser} req
+   * @param {Response} res
+   */
+  async getGpodderDevices(req, res) {
+    if (!req.user.isAdminOrUp) {
+      Logger.error(`[MiscController] Non-admin user "${req.user.username}" attempted to get Gpodder devices`)
+      return res.sendStatus(403)
+    }
+
+    try {
+      const devices = await Database.gpodderDeviceModel.findAll({
+        include: [
+          {
+            model: Database.userModel,
+            attributes: ['id', 'username']
+          }
+        ],
+        order: [['updatedAt', 'DESC']]
+      })
+
+      const devicesJson = devices.map((device) => ({
+        id: device.id,
+        deviceId: device.deviceId,
+        caption: device.caption,
+        type: device.type,
+        subscriptions: device.subscriptions,
+        userId: device.userId,
+        username: device.user?.username || '',
+        createdAt: device.createdAt,
+        updatedAt: device.updatedAt
+      }))
+
+      res.json({ devices: devicesJson })
+    } catch (error) {
+      Logger.error('[MiscController] Error fetching Gpodder devices:', error)
+      res.status(500).send('Failed to fetch Gpodder devices')
+    }
+  }
 }
 module.exports = new MiscController()
