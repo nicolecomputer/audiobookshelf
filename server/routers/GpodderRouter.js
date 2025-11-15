@@ -18,6 +18,11 @@ class GpodderRouter {
     //
     this.router.post('/auth/:username/login.json', this.gpodderController.login.bind(this.gpodderController))
     this.router.post('/auth/:username/logout.json', this.gpodderController.logout.bind(this.gpodderController))
+
+    //
+    // Device Routes
+    //
+    this.router.get('/devices/:username.json', this.gpodderController.getDevices.bind(this.gpodderController))
   }
 }
 

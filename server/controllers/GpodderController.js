@@ -171,6 +171,102 @@ class GpodderController {
     // Return success
     res.sendStatus(200)
   }
+
+  /**
+   * Helper to authenticate user either via Basic Auth or session cookie
+   *
+   * @param {Request} req
+   * @param {string} usernameFromUrl - Username from URL path
+   * @returns {Promise<{user: import('../models/User'), authenticated: boolean}>}
+   */
+  async authenticateUser(req, usernameFromUrl) {
+    // Try session-based auth first (from cookies)
+    if (req.session && req.session.userId) {
+      Logger.info('[GpodderController] Authenticating via session cookie')
+      const user = await Database.userModel.getUserById(req.session.userId)
+      if (user && user.username.toLowerCase() === usernameFromUrl.toLowerCase()) {
+        Logger.info(`[GpodderController] Session auth successful for user: ${user.username}`)
+        return { user, authenticated: true }
+      }
+      Logger.warn('[GpodderController] Session exists but user mismatch or not found')
+    }
+
+    // Fall back to Basic Auth
+    const credentials = this.parseBasicAuth(req)
+    if (!credentials) {
+      Logger.error('[GpodderController] No valid session or Basic Auth credentials')
+      return { user: null, authenticated: false }
+    }
+
+    // Check if the username in the URL matches the one in the Authorization header
+    if (credentials.username.toLowerCase() !== usernameFromUrl.toLowerCase()) {
+      Logger.error(`[GpodderController] Username mismatch: URL has "${usernameFromUrl}", Auth header has "${credentials.username}"`)
+      return { user: null, authenticated: false }
+    }
+
+    // Find the user in the database
+    const user = await Database.userModel.getUserByUsername(credentials.username.toLowerCase())
+    if (!user) {
+      Logger.error(`[GpodderController] User not found: ${credentials.username}`)
+      return { user: null, authenticated: false }
+    }
+
+    // Verify the password using LocalAuthStrategy
+    const isValid = await this.localAuthStrategy.comparePassword(credentials.password, user)
+    if (!isValid) {
+      Logger.error(`[GpodderController] Invalid password for user: ${credentials.username}`)
+      return { user: null, authenticated: false }
+    }
+
+    Logger.info(`[GpodderController] Basic auth successful for user: ${user.username}`)
+    return { user, authenticated: true }
+  }
+
+  /**
+   * GET: /api/2/devices/:username.json
+   * Get list of devices for a user
+   *
+   * @param {Request} req
+   * @param {Response} res
+   */
+  async getDevices(req, res) {
+    if (!Database.serverSettings.enableGpodderAPI) {
+      Logger.error('[GpodderController] Gpodder API is disabled')
+      return res.sendStatus(404)
+    }
+
+    const { username } = req.params
+
+    // Authenticate user via session or Basic Auth
+    const { user, authenticated } = await this.authenticateUser(req, username)
+    if (!authenticated || !user) {
+      return res.sendStatus(401)
+    }
+
+    // Return test data following the reference implementation format
+    const devices = [
+      {
+        id: 'test-device-1',
+        caption: 'Test Device 1',
+        type: 'desktop',
+        subscriptions: 5
+      },
+      {
+        id: 'antennapod-device',
+        caption: 'My AntennaPod',
+        type: 'mobile',
+        subscriptions: 10
+      },
+      {
+        id: 'web-player',
+        caption: 'Web Browser',
+        type: 'laptop',
+        subscriptions: 3
+      }
+    ]
+
+    res.json(devices)
+  }
 }
 
 module.exports = GpodderController
