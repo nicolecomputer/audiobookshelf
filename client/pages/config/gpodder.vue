@@ -17,6 +17,22 @@
             </p>
           </ui-tooltip>
         </div>
+
+        <div v-if="enableGpodderAPI" class="flex items-center py-4">
+          <div class="w-80">
+            <ui-dropdown v-model="gpodderLibraryId" :items="podcastLibraries" :label="$strings.LabelGpodderLibrary" :disabled="updatingServerSettings" @input="updateGpodderLibrary">
+              <template #item="{ item }">
+                <div class="flex items-center">
+                  <span class="material-symbols text-xl mr-2">podcasts</span>
+                  <span>{{ item.text }}</span>
+                </div>
+              </template>
+            </ui-dropdown>
+          </div>
+          <ui-tooltip v-if="!podcastLibraries.length" :text="$strings.MessageNoLibraries || 'No podcast libraries found. Create a podcast library first.'">
+            <span class="material-symbols icon-text ml-2 text-warning">warning</span>
+          </ui-tooltip>
+        </div>
       </div>
 
       <tables-gpodder-devices-table class="pt-8" @numDevices="(count) => (numDevices = count)" />
@@ -35,6 +51,7 @@ export default {
     return {
       updatingServerSettings: false,
       enableGpodderAPI: false,
+      gpodderLibraryId: null,
       numDevices: 0
     }
   },
@@ -44,6 +61,7 @@ export default {
       handler(newVal) {
         if (newVal) {
           this.enableGpodderAPI = !!newVal.enableGpodderAPI
+          this.gpodderLibraryId = newVal.gpodderLibraryId || null
         }
       }
     }
@@ -54,6 +72,17 @@ export default {
     },
     serverSettings() {
       return this.$store.state.serverSettings
+    },
+    libraries() {
+      return this.$store.state.libraries.libraries || []
+    },
+    podcastLibraries() {
+      return this.libraries
+        .filter((lib) => lib.mediaType === 'podcast')
+        .map((lib) => ({
+          text: lib.name,
+          value: lib.id
+        }))
     }
   },
   methods: {
@@ -79,8 +108,35 @@ export default {
           this.updatingServerSettings = false
           this.enableGpodderAPI = !val
         })
+    },
+    updateGpodderLibrary(libraryId) {
+      this.updatingServerSettings = true
+      this.$store
+        .dispatch('updateServerSettings', { gpodderLibraryId: libraryId })
+        .then((response) => {
+          this.updatingServerSettings = false
+
+          if (response.error) {
+            console.error('Failed to update server settings', response.error)
+            this.$toast.error(response.error)
+            return
+          }
+
+          const libraryName = this.podcastLibraries.find((lib) => lib.value === libraryId)?.text || 'library'
+          this.$toast.success(`Gpodder library set to ${libraryName}`)
+        })
+        .catch((error) => {
+          console.error('Failed to update server settings', error)
+          this.$toast.error('Failed to update settings')
+          this.updatingServerSettings = false
+        })
     }
   },
-  mounted() {}
+  mounted() {
+    // Load libraries if not already loaded
+    if (!this.$store.state.libraries.libraries?.length) {
+      this.$store.dispatch('libraries/load')
+    }
+  }
 }
 </script>

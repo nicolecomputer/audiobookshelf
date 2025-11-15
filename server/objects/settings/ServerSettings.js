@@ -51,6 +51,7 @@ class ServerSettings {
     // Misc Flags
     this.chromecastEnabled = false
     this.enableGpodderAPI = false
+    this.gpodderLibraryId = null
     this.dateFormat = 'MM/dd/yyyy'
     this.timeFormat = 'HH:mm'
     this.language = 'en-us'
@@ -120,6 +121,7 @@ class ServerSettings {
     this.sortingPrefixes = settings.sortingPrefixes || ['the']
     this.chromecastEnabled = !!settings.chromecastEnabled
     this.enableGpodderAPI = !!settings.enableGpodderAPI
+    this.gpodderLibraryId = settings.gpodderLibraryId || null
     this.dateFormat = settings.dateFormat || 'MM/dd/yyyy'
     this.timeFormat = settings.timeFormat || 'HH:mm'
     this.language = settings.language || 'en-us'
@@ -233,6 +235,7 @@ class ServerSettings {
       sortingPrefixes: [...this.sortingPrefixes],
       chromecastEnabled: this.chromecastEnabled,
       enableGpodderAPI: this.enableGpodderAPI,
+      gpodderLibraryId: this.gpodderLibraryId,
       dateFormat: this.dateFormat,
       timeFormat: this.timeFormat,
       language: this.language,
