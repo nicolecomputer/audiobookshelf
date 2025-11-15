@@ -13,6 +13,7 @@ const GpodderMiddleware = require('../utils/GpodderMiddleware')
 class GpodderController {
   constructor(Server) {
     this.Server = Server
+    this.podcastManager = Server.podcastManager
     this.gpodderMiddleware = new GpodderMiddleware()
   }
 
@@ -213,12 +214,37 @@ class GpodderController {
     }
 
     try {
-      // Log what would be added
+      // Process additions - create podcasts from RSS feed URLs
       if (add && add.length > 0) {
-        Logger.info(`[GpodderController] Would add ${add.length} subscription(s) for device ${deviceid}:`, add)
+        Logger.info(`[GpodderController] Creating ${add.length} podcast(s) from RSS feeds for device ${deviceid}:`, add)
+
+        // Get the gpodder library folder
+        const gpodderLibraryId = Database.serverSettings.gpodderLibraryId
+        if (!gpodderLibraryId) {
+          Logger.error('[GpodderController] Gpodder library not configured')
+          return res.status(500).send('Gpodder library not configured')
+        }
+
+        const library = await Database.libraryModel.findByPk(gpodderLibraryId)
+        if (!library) {
+          Logger.error('[GpodderController] Gpodder library not found')
+          return res.status(500).send('Gpodder library not found')
+        }
+
+        // Get the first folder in the library
+        const folders = await library.getLibraryFolders()
+        if (!folders || !folders.length) {
+          Logger.error('[GpodderController] No folders found in gpodder library')
+          return res.status(500).send('No folders in gpodder library')
+        }
+        const folder = folders[0]
+
+        // Create podcasts from the RSS feed URLs
+        // autoDownloadEpisodes = false for gpodder sync
+        this.podcastManager.createPodcastsFromFeedUrls(add, folder, false, null)
       }
 
-      // Log what would be removed
+      // Log removals (not implemented yet)
       if (remove && remove.length > 0) {
         Logger.info(`[GpodderController] Would remove ${remove.length} subscription(s) for device ${deviceid}:`, remove)
       }
