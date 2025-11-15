@@ -24,6 +24,7 @@ const SocketAuthority = require('./SocketAuthority')
 const ApiRouter = require('./routers/ApiRouter')
 const HlsRouter = require('./routers/HlsRouter')
 const PublicRouter = require('./routers/PublicRouter')
+const GpodderRouter = require('./routers/GpodderRouter')
 
 const LogManager = require('./managers/LogManager')
 const EmailManager = require('./managers/EmailManager')
@@ -113,6 +114,7 @@ class Server {
     this.apiRouter = new ApiRouter(this)
     this.hlsRouter = new HlsRouter(this.auth, this.playbackSessionManager)
     this.publicRouter = new PublicRouter(this.playbackSessionManager)
+    this.gpodderRouter = new GpodderRouter(this)
 
     Logger.logManager = new LogManager()
 
@@ -284,6 +286,9 @@ class Server {
     await this.auth.initPassportJs()
 
     const router = express.Router()
+
+    // Mount GpodderRouter directly on app (bypasses RouterBasePath)
+    app.use('/api/2', this.gpodderRouter.router)
 
     // if RouterBasePath is set, modify all requests to include the base path
     app.use((req, res, next) => {
