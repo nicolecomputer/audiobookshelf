@@ -144,6 +144,56 @@ class GpodderController {
       res.sendStatus(500)
     }
   }
+
+  /**
+   * GET: /api/2/subscriptions/:username/:deviceid.json
+   * Get subscription changes for a device
+   * Query params:
+   *  - since: timestamp (Unix epoch in seconds) of the last sync
+   *
+   * @param {RequestWithUser} req
+   * @param {Response} res
+   */
+  async getSubscriptions(req, res) {
+    const { deviceid } = req.params
+    const { since } = req.query
+
+    try {
+      // Get all podcast library items from the gpodder library
+      const libraryItems = await Database.libraryItemModel.findAll({
+        where: {
+          libraryId: Database.serverSettings.gpodderLibraryId,
+          mediaType: 'podcast'
+        }
+      })
+
+      // Build the server URL from the request
+      const protocol = req.protocol
+      const host = req.get('host')
+      const serverUrl = `${protocol}://${host}`
+
+      // Map library items to their local URLs
+      const podcastUrls = libraryItems.map((item) => `${serverUrl}/item/${item.id}`)
+
+      // Get the current timestamp in seconds
+      const timestamp = Math.floor(Date.now() / 1000)
+
+      // Return subscription changes in gpodder format
+      // For now, we return all podcasts as "add" when since=0 (initial sync)
+      // TODO: Track actual subscription changes in the future
+      const response = {
+        add: podcastUrls,
+        remove: [],
+        timestamp: timestamp
+      }
+
+      Logger.info(`[GpodderController] Returning ${podcastUrls.length} podcasts for device ${deviceid}`)
+      res.json(response)
+    } catch (error) {
+      Logger.error('[GpodderController] Error getting subscriptions:', error)
+      res.sendStatus(500)
+    }
+  }
 }
 
 module.exports = GpodderController

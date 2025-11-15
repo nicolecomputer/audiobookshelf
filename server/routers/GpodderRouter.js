@@ -28,6 +28,11 @@ class GpodderRouter {
     //
     this.router.get('/devices/:username.json', this.gpodderMiddleware.authenticate.bind(this.gpodderMiddleware), this.gpodderController.getDevices.bind(this.gpodderController))
     this.router.post('/devices/:username/:deviceid.json', this.gpodderMiddleware.authenticate.bind(this.gpodderMiddleware), this.gpodderController.updateDevice.bind(this.gpodderController))
+
+    //
+    // Subscription Routes
+    //
+    this.router.get('/subscriptions/:username/:deviceid.json', this.gpodderMiddleware.authenticate.bind(this.gpodderMiddleware), this.gpodderController.getSubscriptions.bind(this.gpodderController))
   }
 }
 
