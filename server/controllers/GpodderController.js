@@ -126,29 +126,17 @@ class GpodderController {
     }
 
     // User is already authenticated by middleware and available at req.user
-    // Return test data following the reference implementation format
-    const devices = [
-      {
-        id: 'test-device-1',
-        caption: 'Test Device 1',
-        type: 'desktop',
-        subscriptions: 5
-      },
-      {
-        id: 'antennapod-device',
-        caption: 'My AntennaPod',
-        type: 'mobile',
-        subscriptions: 10
-      },
-      {
-        id: 'web-player',
-        caption: 'Web Browser',
-        type: 'laptop',
-        subscriptions: 3
-      }
-    ]
+    try {
+      const gpodderDevices = await Database.gpodderDeviceModel.getDevicesForUser(req.user.id)
 
-    res.json(devices)
+      // Convert to API format
+      const devices = gpodderDevices.map((device) => device.toJSONForAPI())
+
+      res.json(devices)
+    } catch (error) {
+      Logger.error('[GpodderController] Error fetching devices:', error)
+      res.sendStatus(500)
+    }
   }
 }
 
