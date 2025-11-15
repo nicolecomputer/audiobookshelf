@@ -12,6 +12,9 @@ class GpodderRouter {
   }
 
   init() {
+    // Add JSON body parser middleware
+    this.router.use(express.json())
+
     // Add logging middleware for all gpodder routes
     this.router.use(this.gpodderController.middleware.bind(this.gpodderController))
 
@@ -33,6 +36,7 @@ class GpodderRouter {
     // Subscription Routes
     //
     this.router.get('/subscriptions/:username/:deviceid.json', this.gpodderMiddleware.authenticate.bind(this.gpodderMiddleware), this.gpodderController.getSubscriptions.bind(this.gpodderController))
+    this.router.post('/subscriptions/:username/:deviceid.json', this.gpodderMiddleware.authenticate.bind(this.gpodderMiddleware), this.gpodderController.uploadSubscriptions.bind(this.gpodderController))
   }
 }
 

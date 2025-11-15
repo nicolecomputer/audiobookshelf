@@ -194,6 +194,51 @@ class GpodderController {
       res.sendStatus(500)
     }
   }
+
+  /**
+   * POST: /api/2/subscriptions/:username/:deviceid.json
+   * Upload subscription changes for a device
+   *
+   * @param {RequestWithUser} req
+   * @param {Response} res
+   */
+  async uploadSubscriptions(req, res) {
+    const { deviceid } = req.params
+    const { add, remove } = req.body || {}
+
+    // Validate request body - at least one array should be provided
+    if ((add !== undefined && !Array.isArray(add)) || (remove !== undefined && !Array.isArray(remove))) {
+      Logger.error('[GpodderController] Invalid request body: add and remove must be arrays if provided')
+      return res.sendStatus(400)
+    }
+
+    try {
+      // Log what would be added
+      if (add && add.length > 0) {
+        Logger.info(`[GpodderController] Would add ${add.length} subscription(s) for device ${deviceid}:`, add)
+      }
+
+      // Log what would be removed
+      if (remove && remove.length > 0) {
+        Logger.info(`[GpodderController] Would remove ${remove.length} subscription(s) for device ${deviceid}:`, remove)
+      }
+
+      // Get the current timestamp in seconds
+      const timestamp = Math.floor(Date.now() / 1000)
+
+      // Return response with updated timestamp
+      const response = {
+        timestamp: timestamp,
+        update_urls: []
+      }
+
+      Logger.info(`[GpodderController] Subscription upload successful for device ${deviceid}`)
+      res.json(response)
+    } catch (error) {
+      Logger.error('[GpodderController] Error uploading subscriptions:', error)
+      res.sendStatus(500)
+    }
+  }
 }
 
 module.exports = GpodderController
