@@ -138,6 +138,40 @@ class GpodderController {
       res.sendStatus(500)
     }
   }
+
+  /**
+   * POST: /api/2/devices/:username/:deviceid.json
+   * Update Device Data
+   *
+   * @param {RequestWithUser} req
+   * @param {Response} res
+   */
+  async updateDevice(req, res) {
+    if (!Database.serverSettings.enableGpodderAPI) {
+      Logger.error('[GpodderController] Gpodder API is disabled')
+      return res.sendStatus(404)
+    }
+
+    const { deviceid } = req.params
+    const { caption, type } = req.body || {}
+
+    // Default values if not provided
+    const deviceData = {
+      caption: caption || deviceid,
+      type: type || 'other'
+    }
+
+    try {
+      const device = await Database.gpodderDeviceModel.createOrUpdate(req.user.id, deviceid, deviceData)
+
+      Logger.info(`[GpodderController] Device ${deviceid} updated for user ${req.user.username}`)
+
+      res.json(device.toJSONForAPI())
+    } catch (error) {
+      Logger.error('[GpodderController] Error updating device:', error)
+      res.sendStatus(500)
+    }
+  }
 }
 
 module.exports = GpodderController

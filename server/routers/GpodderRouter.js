@@ -22,6 +22,7 @@ class GpodderRouter {
     // Device Routes
     //
     this.router.get('/devices/:username.json', this.gpodderController.authenticate.bind(this.gpodderController), this.gpodderController.getDevices.bind(this.gpodderController))
+    this.router.post('/devices/:username/:deviceid.json', this.gpodderController.authenticate.bind(this.gpodderController), this.gpodderController.updateDevice.bind(this.gpodderController))
   }
 }
 
